@@ -1,10 +1,6 @@
-#pragma once
+#include "FWiFi.h"
 
-#include <Arduino.h>
-#include <WiFi.h>
-#include <ESPmDNS.h>
-
-void WiFi_connect(const char* ssid, const char* password, const char* hostname, uint32_t timeout = 10000U)
+void WiFi_connect(const char* ssid, const char* password, const char* hostname, uint32_t timeout)
 {
     WiFi.begin(ssid, password);
     Serial.print("Connecting to WiFi...");

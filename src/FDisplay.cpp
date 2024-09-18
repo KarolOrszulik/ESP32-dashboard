@@ -1,7 +1,4 @@
-#pragma once
-
-#define PxMATRIX_DOUBLE_BUFFER true
-#include <PxMatrix.h>
+#include "FDisplay.h"
 
 constexpr byte P_LAT = 22;
 constexpr byte P_A   = 5;
@@ -10,30 +7,22 @@ constexpr byte P_C   = 23;
 constexpr byte P_D   = 19;
 constexpr byte P_E   = 15;
 constexpr byte P_OE  = 16;
+
 hw_timer_t* timer = NULL;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
-PxMATRIX display(64, 64, P_LAT, P_OE, P_A, P_B, P_C, P_D, P_E);
+PxMATRIX g_display(64, 64, P_LAT, P_OE, P_A, P_B, P_C, P_D, P_E);
 
-uint16_t led_time = 20;
-uint16_t colorPrimary = display.color565(255, 64, 0);
-uint16_t colorSecondary = display.color565(128, 128, 128);
+
+uint16_t g_ledDuration = 40;
+uint16_t g_colorPrimary = g_display.color565(255, 42, 0);
+uint16_t g_colorSecondary = g_display.color565(64, 64, 64);
 
 void IRAM_ATTR display_updater()
 {
     portENTER_CRITICAL_ISR(&timerMux);
-    display.display(led_time);
+    g_display.display(g_ledDuration);
     portEXIT_CRITICAL_ISR(&timerMux);
-}
-
-void Display_init()
-{
-    display.begin(32);
-    display.setColorOrder(BBRRGG);
-    display.setBrightness(8);
-    display.setMuxDelay(1,1,1,1,1);
-    display.clearDisplay();
-    display.showBuffer();
 }
 
 void Display_createRefreshTask()
@@ -42,7 +31,7 @@ void Display_createRefreshTask()
         [] (void*) {
             timer = timerBegin(0, 80, true); // clock divided by 80 = 1MHz -> T=1us
             timerAttachInterrupt(timer, &display_updater, true);
-            timerAlarmWrite(timer, 2000, true); // trigger every 2000us
+            timerAlarmWrite(timer, 4000, true);
             timerAlarmEnable(timer);
             while (true) {
                 delay(1000); // Keep the task alive
@@ -55,4 +44,15 @@ void Display_createRefreshTask()
         NULL,           // Task handle
         1               // Core to run the task on
     );
+}
+
+void Display_init()
+{
+    g_display.begin(32);
+    g_display.setColorOrder(BBRRGG);
+    g_display.setBrightness(16);
+    g_display.clearDisplay();
+    g_display.showBuffer();
+
+    Display_createRefreshTask();
 }

@@ -1,13 +1,12 @@
-#pragma once
+#include "FNTP.h"
 
-#include <Arduino.h>
-#include <WiFi.h>
-#include "time.h"
+struct tm g_timeInfo;
 
-void NTP_configure(const char* server, long gmtOffset, int dstOffset)
+void NTP_configure(const char *server, long gmtOffset, int dstOffset)
 {
     Serial.print("Configuring NTP...");
     configTime(gmtOffset, dstOffset, server);
+    
     struct tm timeinfo;
     while (!getLocalTime(&timeinfo))
     {
