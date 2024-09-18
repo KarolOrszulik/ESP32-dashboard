@@ -4,10 +4,10 @@
 #include <PxMatrix.h>
 
 constexpr byte P_LAT = 22;
-constexpr byte P_A   = 19;
-constexpr byte P_B   = 23;
-constexpr byte P_C   = 18;
-constexpr byte P_D   = 5;
+constexpr byte P_A   = 5;
+constexpr byte P_B   = 18;
+constexpr byte P_C   = 23;
+constexpr byte P_D   = 19;
 constexpr byte P_E   = 15;
 constexpr byte P_OE  = 16;
 hw_timer_t* timer = NULL;
@@ -16,7 +16,8 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 PxMATRIX display(64, 64, P_LAT, P_OE, P_A, P_B, P_C, P_D, P_E);
 
 uint16_t led_time = 20;
-uint16_t color = 0xFFFF;
+uint16_t colorPrimary = display.color565(255, 64, 0);
+uint16_t colorSecondary = display.color565(128, 128, 128);
 
 void IRAM_ATTR display_updater()
 {

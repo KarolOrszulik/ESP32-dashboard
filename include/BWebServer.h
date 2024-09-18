@@ -14,7 +14,7 @@ void WebServer_setCallbacks()
     webServer.on("/rgb", [] {
         if (webServer.hasArg("r") && webServer.hasArg("g") && webServer.hasArg("b"))
         {
-            color = display.color565(webServer.arg("r").toInt(), webServer.arg("g").toInt(), webServer.arg("b").toInt());
+            colorPrimary = display.color565(webServer.arg("r").toInt(), webServer.arg("g").toInt(), webServer.arg("b").toInt());
             webServer.send(200, "text/plain", "Color set\n");
         }
         else
@@ -37,7 +37,7 @@ void WebServer_setCallbacks()
             const int r = (hue < 60) ? 255 : (hue < 120) ? 255 - (hue - 60) * 255 / 60 : (hue < 240) ? 0 : (hue < 300) ? (hue - 240) * 255 / 60 : 255;
             const int g = (hue < 60) ? hue * 255 / 60 : (hue < 180) ? 255 : (hue < 240) ? 255 - (hue - 180) * 255 / 60 : 0;
             const int b = (hue < 120) ? 0 : (hue < 180) ? (hue - 120) * 255 / 60 : (hue < 300) ? 255 : 255 - (hue - 300) * 255 / 60;
-            color = display.color565(r, g, b);
+            colorPrimary = display.color565(r, g, b);
             webServer.send(200, "text/plain", "Color set\n");
         }
         else
