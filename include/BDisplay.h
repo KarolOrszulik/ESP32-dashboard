@@ -31,6 +31,7 @@ void Display_init()
     display.begin(32);
     display.setColorOrder(BBRRGG);
     display.setBrightness(8);
+    display.setMuxDelay(1,1,1,1,1);
     display.clearDisplay();
     display.showBuffer();
 }

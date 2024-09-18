@@ -2,7 +2,29 @@
 #include <BWiFi.h>
 #include <BNTP.h>
 #include <BWebServer.h>
-#include <BMQTT.h>
+
+struct tm timeinfo;
+
+struct NetworkVariable
+{
+    NetworkVariable(const char *name) : _name(name) {}
+
+    void init()
+    {
+        webServer.on("/" + _name, [this]
+                     {
+            if (webServer.hasArg("val")) {
+                _value = webServer.arg("val");
+                webServer.send(200, "text/plain", "Value set\n");
+            } });
+    }
+
+    String _name;
+    String _value;
+};
+
+NetworkVariable varTemperature{"temperature"};
+NetworkVariable varHumidity{"humidity"};
 
 void setup()
 {
@@ -10,14 +32,12 @@ void setup()
     delay(500);
 
 #include "secret_wifi_credentials.h"
-    const char *WIFI_HOSTNAME = "esp32dash";
-    WiFi_connect(WIFI_SSID, WIFI_PASSWORD, WIFI_HOSTNAME);
+    WiFi_connect(WIFI_SSID, WIFI_PASSWORD, "esp32dash");
 
     WebServer_setCallbacks();
+    varTemperature.init();
+    varHumidity.init();
     webServer.begin();
-
-#include "mqtt_settings.h"
-    MQTT_init(MQTT_BROKER);
 
     Display_init();
     Display_createRefreshTask();
@@ -26,105 +46,172 @@ void setup()
     NTP_configure(NTP_SERVER, GMT_OFFSET_S, DST_OFFSET_S);
 }
 
-class Frame // a frame on the display with data either from MQTT or NTP
+class Frame
 {
 public:
-    virtual void show() = 0;
+    struct Size
+    {
+        union
+        {
+            int x, w;
+        };
+        union
+        {
+            int y, h;
+        };
+    };
 
-    Frame(uint16_t x, uint16_t y, uint16_t width, uint16_t height) : _x(x), _y(y), _width(width), _height(height) {}
+    static constexpr Size FONT_SIZES[] = {{0, 0}, {6, 7}, {12, 14}, {18, 24}};
+
+    Frame(Size pos, Size size) : _pos(pos), _size(size) {};
+
+    virtual void show()
+    {
+        display.drawRect(_pos.x, _pos.y, _size.w, _size.h, colorSecondary);
+    }
+
+    Size margins(Size content) const
+    {
+        return {
+            (_size.w - content.w) / 2,
+            (_size.h - content.h) / 2};
+    }
+
+    Size margins(int charCount, int fontSize) const
+    {
+        return margins({charCount * FONT_SIZES[fontSize].w, FONT_SIZES[fontSize].h});
+    }
+
+    void printCentered(String const& text, int fontSize)
+    {
+        const Size MARGINS = margins(text.length(), fontSize);
+        display.setTextColor(colorPrimary);
+        display.setTextSize(fontSize);
+        display.setCursor(_pos.x + MARGINS.x,
+                          _pos.y + MARGINS.y);
+        display.print(text);
+    }
 
 protected:
-    uint16_t _width, _height, _x, _y;
+    Size _pos, _size;
 };
+constexpr Frame::Size Frame::FONT_SIZES[];
 
-void Frame::show()
-{
-    {
-        display.drawRect(_x, _y, _width, _height, colorSecondary);
-    }
-}
 
 class Frame_Clock : public Frame
 {
 public:
-    Frame_Clock(uint16_t y)
-        : Frame(0, y, 64, 24)
+    Frame_Clock(int height) // centered
+        : Frame(
+              Frame::Size{1, (display.height() - height) / 2},
+              Frame::Size{62, height})
     {
     }
 
     void show() override
     {
         Frame::show();
-        display.drawRect(_x + 1, _y + 1, _width - 2, _height - 2, colorSecondary);
 
-        struct tm timeinfo = NTP_getTime();
+        const int FONT_SIZE = 2;
 
-        display.setTextColor(colorPrimary);
-        display.setTextSize(2);
-        display.setCursor(_x + 3, _y + 5);
+        String text;
+        text.reserve(5);
 
         if (timeinfo.tm_hour < 10)
-            display.print("0");
-        display.print(timeinfo.tm_hour);
-        display.print((timeinfo.tm_sec & 1) ? ':' : ' ');
+            text += "0";
+        text += timeinfo.tm_hour;
+        text += (timeinfo.tm_sec & 1) ? ':' : ' ';
         if (timeinfo.tm_min < 10)
-            display.print("0");
-        display.print(timeinfo.tm_min);
+            text += "0";
+        text += timeinfo.tm_min;
 
+        printCentered(text, FONT_SIZE);
+
+
+        const int x = _pos.x + 1; // dimensioned from inside the frame
+        const int y = _pos.y + 1;
         const int l = timeinfo.tm_sec + 1;
+
         uint16_t lineColor = (timeinfo.tm_min & 1) ? 0x0000 : colorPrimary;
         uint16_t bgColor = (timeinfo.tm_min & 1) ? colorPrimary : 0x0000;
 
-        display.drawFastHLine(_x + 2, _y + 2, _width - 4, bgColor);
-        display.drawFastHLine(_x + 2, _y + 2, l, lineColor);
+        display.drawFastHLine(x, y, 60, bgColor);
+        display.drawFastHLine(x, y, l, lineColor);
 
-        display.drawFastHLine(_x + 2, _y + _height - 3, _width - 4, lineColor);
-        display.drawFastHLine(_x + 2, _y + _height - 3, l, bgColor);
+        display.drawFastHLine(x, y + _size.h - 3, 60, lineColor);
+        display.drawFastHLine(x, y + _size.h - 3, l, bgColor);
     }
 };
 
-class Frame_MQTT : public Frame
+class Frame_Date : public Frame
 {
 public:
-    Frame_MQTT(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const char *topic)
-        : Frame(x, y, width, height)
+    Frame_Date(Size pos, Size size)
+        : Frame(
+              Frame::Size{pos.x, pos.y},
+              Frame::Size{size.w, size.h})
     {
-        MQTT_addSubscribtion(topic);
-        strcpy(_topic, topic);
     }
 
     void show() override
     {
         Frame::show();
-        display.setTextColor(colorPrimary);
-        display.setTextSize(1);
-        display.setCursor(_x + 2, _y + 2);
-        display.print(MQTT_lastMessageFrom(_topic));
+
+        const int FONT_SIZE = 1;
+        
+        static const char* WEEKDAYS[] = {"Nie", "Pon", "Wto", "Sro", "Czw", "Pia", "Sob"};
+        const String DAY_PADDING = timeinfo.tm_mday < 10 ? "0" : "";
+        const String MONTH_PADDING = timeinfo.tm_mon + 1 < 10 ? "0" : "";
+        String date =
+            WEEKDAYS[timeinfo.tm_wday]
+            + String(" ") + DAY_PADDING   + String(timeinfo.tm_mday)
+            + "."         + MONTH_PADDING + String(timeinfo.tm_mon + 1);
+        
+        printCentered(date, FONT_SIZE);
+    }
+};
+
+class Frame_NetworkVariable : public Frame
+{
+public:
+    Frame_NetworkVariable(Size pos, Size size, NetworkVariable *nv)
+        : Frame(pos, size), _nv(nv)
+    {
+    }
+
+    void show() override
+    {
+        Frame::show();
+        
+        const int FONT_SIZE = 1;
+
+        String text = _nv->_value;
+
+        printCentered(text, FONT_SIZE);
     }
 
 private:
-    char _topic[MAX_MQTT_TOPIC_LEN];
+    NetworkVariable *_nv;
 };
 
-Frame_Clock clockFrame((64 - 24) / 2);
-Frame_MQTT mqttFrame(0, 0, 32, 20, "esp32dash/temperature");
+Frame_NetworkVariable tempFrame({3, 1}, {28, 17}, &varTemperature);
+Frame_Clock clockFrame(24);
+Frame_Date  dateFrame({3, 46}, {58, 17});
+Frame_NetworkVariable humidFrame({33, 1}, {28, 17}, &varHumidity);
 
-Frame *frames[] = {&clockFrame, &mqttFrame};
+Frame *frames[] = {&clockFrame, &tempFrame, &dateFrame, &humidFrame};
 
 void loop()
 {
     webServer.handleClient();
-    ensureMQTTConnection();
-    mqttClient.loop();
+    timeinfo = NTP_getTime();
 
     display.clearDisplay();
-
-    for (Frame* frame : frames)
+    for (Frame *frame : frames)
     {
         frame->show();
     }
-
     display.showBuffer();
 
-    delay(100);
+    delay(1000);
 }
