@@ -22,3 +22,14 @@ struct tm NTP_getTime()
     getLocalTime(&timeinfo);
     return timeinfo;
 }
+
+bool NTP_isNewSecond(int second)
+{
+    static int lastSecond = -1;
+    if (second != lastSecond)
+    {
+        lastSecond = second;
+        return true;
+    }
+    return false;
+}

@@ -26,6 +26,7 @@ public:
     static constexpr Size FONT_SIZES[] = {{0, 0}, {6, 7}, {12, 14}, {18, 24}};
 
     Frame(Size pos, Size size) : _pos(pos), _size(size) {};
+    Frame(int posx, int posy, int sizex, int sizey) : _pos({posx, posy}), _size({sizex, sizey}) {};
     
     virtual void show() = 0;
     Size margins(Size content) const;

@@ -15,8 +15,8 @@ PxMATRIX g_display(64, 64, P_LAT, P_OE, P_A, P_B, P_C, P_D, P_E);
 
 
 uint16_t g_ledDuration = 40;
-uint16_t g_colorPrimary = g_display.color565(255, 42, 0);
-uint16_t g_colorSecondary = g_display.color565(64, 64, 64);
+uint16_t g_colorPrimary = g_display.color565(255, 20, 0);
+uint16_t g_colorSecondary = g_display.color565(0, 0, 64);
 
 void IRAM_ATTR display_updater()
 {

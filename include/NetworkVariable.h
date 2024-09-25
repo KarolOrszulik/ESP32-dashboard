@@ -4,8 +4,9 @@
 
 #include "FWebServer.h"
 
-struct NetworkVariable
+class NetworkVariable
 {
+public:
     NetworkVariable(const char *name) : _name(name) {}
     NetworkVariable(const char *name, std::function<void(String const&)> callback) : _name(name), _callback(callback) {}
 
@@ -26,6 +27,11 @@ struct NetworkVariable
         });
     }
 
+    String const& getName() { return _name; }
+    String const& getValue() { return _value; }
+    int getValueInt() { return _value.toInt(); }
+
+private:
     String _name;
     String _value;
     std::function<void(String const&)> _callback;

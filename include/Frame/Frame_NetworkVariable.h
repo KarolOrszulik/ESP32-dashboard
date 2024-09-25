@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+
 #include "Frame.h"
 #include "NetworkVariable.h"
 
@@ -12,16 +13,12 @@ public:
     {
     }
 
-    void show() override
+    Frame_NetworkVariable(int posx, int posy, int sizex, int sizey, NetworkVariable *nv)
+        : Frame(posx, posy, sizex, sizey), _nv(nv)
     {
-        Frame::show();
-
-        const int FONT_SIZE = 1;
-
-        String text = _nv->_value;
-
-        printCentered(text, FONT_SIZE);
     }
+
+    void show() override;
 
 private:
     NetworkVariable *_nv;
