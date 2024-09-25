@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#include "Frame.h"
+#include "Frame/Frame.h"
 #include "NetworkVariable.h"
 
 class Frame_NetworkVariable : public Frame

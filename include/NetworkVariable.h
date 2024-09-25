@@ -4,28 +4,19 @@
 
 #include "FWebServer.h"
 
+class NetworkVariable;
+
+extern NetworkVariable g_varXAxis;
+extern NetworkVariable g_varYAxis;
+
+
 class NetworkVariable
 {
 public:
     NetworkVariable(const char *name) : _name(name) {}
     NetworkVariable(const char *name, std::function<void(String const&)> callback) : _name(name), _callback(callback) {}
 
-    void init()
-    {
-        g_webServer.on("/" + _name, [this] {
-            if (g_webServer.hasArg("val")) {
-                _value = g_webServer.arg("val");
-
-                if (_callback)
-                    _callback(_value);
-                    
-                g_webServer.send(200, "text/plain", "Value set\n");
-            }
-            else {
-                g_webServer.send(400, "text/plain", "Invalid request, please provide a \"val\" argument.\n");
-            }
-        });
-    }
+    void init();
 
     String const& getName() { return _name; }
     String const& getValue() { return _value; }

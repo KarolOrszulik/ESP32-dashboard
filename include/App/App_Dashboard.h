@@ -1,13 +1,13 @@
 #pragma once
 
-#include <App/App.h>
+#include "App/App.h"
 
-#include <NetworkVariable.h>
+#include "NetworkVariable.h"
 
-#include <Frame/Frame.h>
-#include <Frame/Frame_NetworkVariable.h>
-#include <Frame/Frame_Time.h>
-#include <Frame/Frame_Date.h>
+#include "Frame/Frame.h"
+#include "Frame/Frame_NetworkVariable.h"
+#include "Frame/Frame_Time.h"
+#include "Frame/Frame_Date.h"
 
 class App_Dashboard : public App
 {
